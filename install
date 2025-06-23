@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# ===========================
+# УСТАНОВОЧНЫЙ СКРИПТ RL-SWARM
+# Обновлён: подставляется model (1, 2, 3) вместо max_steps
+# ===========================
+
+# === Обработка параметров ===
+MODEL="${1:-1}"    # Параметр модели (по умолчанию 1)
+RECLONE="${2:-n}"  # Нужно ли перескачивать репозиторий (по умолчанию n)
+
+# Проверка значения MODEL
+if [[ "$MODEL" != "1" && "$MODEL" != "2" && "$MODEL" != "3" ]]; then
+    echo "❌ Неверное значение model: $MODEL. Допустимые значения: 1, 2, 3"
+    exit 1
+fi
+
+echo "🔧 Установка конфигурации: model=$MODEL, reclone=$RECLONE"
+
+# === Установка зависимостей ===
+sudo apt update && sudo apt install -y python3 python3-venv python3-pip curl screen git gnupg
+
+# Установка Yarn
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt update && sudo apt install -y yarn
+
+# Установка Node.js
+curl -sSL https://raw.githubusercontent.com/zunxbt/installation/main/node.sh | bash
+
+# Очистка старых screen-сессий и процессов на порту 3000
+killall screen 2>/dev/null || true
+lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+
+# === Работа с репозиторием ===
+if [ "$RECLONE" == "y" ]; then
+    echo "📦 Удаляю старую папку и клонирую заново..."
+    rm -rf rl-swarm
+    git clone https://github.com/anfisatarasova/gg.git
+    cd rl-swarm
+else
+    if [ ! -d "rl-swarm" ]; then
+        echo "📦 Папка не найдена, клонирую..."
+        git clone https://github.com/anfisatarasova/gg.git
+    fi
+    cd rl-swarm
+    echo "🔄 Обновляю репозиторий через git pull..."
+    git pull
+fi
+
+# === Подстановка нужного конфигурационного файла ===
+TARGET_CONFIG="hivemind_exp/configs/gpu/grpo-qwen-2.5-1.5b-deepseek-r1.yaml"
+
+case "$MODEL" in
+    1) CFG_URL="https://raw.githubusercontent.com/anfisatarasova/cfg/refs/heads/main/cfg-1" ;;
+    2) CFG_URL="https://raw.githubusercontent.com/anfisatarasova/cfg/refs/heads/main/cfg-2" ;;
+    3) CFG_URL="https://raw.githubusercontent.com/anfisatarasova/cfg/refs/heads/main/cfg-3" ;;
+esac
+
+echo "⬇️ Скачиваю конфиг модели $MODEL с $CFG_URL"
+curl -fsSL "$CFG_URL" -o "$TARGET_CONFIG"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Конфиг модели $MODEL успешно подставлен в $TARGET_CONFIG"
+else
+    echo "❌ Ошибка при загрузке конфига. Проверь ссылку или соединение."
+    exit 1
+fi
+
+# === Проверка и распаковка архива ===
+ARCHIVE_FOUND=$(find /workspace -maxdepth 1 -type f -name '[0-9]*.tar' | head -n 1)
+if [ -n "$ARCHIVE_FOUND" ]; then
+    echo "📦 Найден архив $ARCHIVE_FOUND. Распаковываю..."
+    tar -xvf "$ARCHIVE_FOUND" -C /workspace
+    echo "✅ Архив успешно распакован!"
+else
+    echo "📭 Архивов для распаковки не найдено."
+fi
+
+# === Запуск RL Swarm в screen-сессии ===
+screen -dmS gensyn bash -c 'cd ~/rl-swarm && python3 -m venv .venv && source .venv/bin/activate && trap "" SIGINT && ./run_rl_swarm.sh; exec bash -i' &
+disown
+
+echo "🚀 Установка завершена. RL Swarm запущен в screen-сессии 'gensyn'"
