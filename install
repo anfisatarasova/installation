@@ -73,7 +73,7 @@ else
 fi
 
 # === Запуск RL Swarm в screen-сессии ===
-screen -dmS gensyn bash -c 'cd ~/rl-swarm && python3 -m venv .venv && source .venv/bin/activate && trap "" SIGINT && ./run_rl_swarm.sh; exec bash -i' &
+screen -dmS gensyn bash -c 'cd rl-swarm/ && python3 -m venv .venv && source .venv/bin/activate && trap "" SIGINT && ./run_rl_swarm.sh; exec bash -i' &
 disown
 
 echo "🚀 Установка завершена. RL Swarm запущен в screen-сессии 'gensyn'"
