@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Check if input number is provided
+if [ -z "$1" ]; then
+  echo "Usage: $0 <number>"
+  exit 1
+fi
+
+number="$1"
+
+# Path to JSON
+json_file="/workspace/rl-swarm/modal-login/temp-data/userData.json"
+
+# Check if file exists
+if [ ! -f "$json_file" ]; then
+  echo "? File $json_file not found."
+  exit 1
+fi
+
+# Extract email username
+username=$(jq -r '.[].email' "$json_file" | cut -d '@' -f 1)
+
+# Create archive with number prefix
+archive_name="${number}-${username}.tar"
+tar -cvf "$archive_name" rl-swarm/swarm.pem rl-swarm/modal-login/temp-data/
+
+echo "? Archive created: $archive_name"
