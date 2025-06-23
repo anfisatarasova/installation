@@ -31,12 +31,12 @@ lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 if [ "$RECLONE" == "y" ]; then
     echo "📦 Удаляю старую папку и клонирую заново..."
     rm -rf rl-swarm
-    git clone https://github.com/anfisatarasova/gg.git
+    git clone https://github.com/anfisatarasova/gg.git rl-swarm
     cd rl-swarm
 else
     if [ ! -d "rl-swarm" ]; then
         echo "📦 Папка не найдена, клонирую..."
-        git clone https://github.com/anfisatarasova/gg.git
+        git clone https://github.com/anfisatarasova/gg.git rl-swarm
     fi
     cd rl-swarm
     echo "🔄 Обновляю репозиторий через git pull..."
